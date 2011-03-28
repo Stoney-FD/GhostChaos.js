@@ -1,0 +1,85 @@
+Ghost Chaos Web
+http://webgames.freeze-dev.com/ghostchaos
+
+
+The player finds himself in the role of a paranormal activist who is sent to a
+spooky house to find all ghosts that are living there.
+Tap (and drag) the screen or use your mouse to move the light cone of your flashlight around to
+turn ghosts visible. Either tap or click on the ghosts to make them disappear immediately
+or follow their route until they dissolve completely.
+Use both ways how you see appropriate: Tapping on a ghost restores the opacity
+of every other ghost on the screen while following ghosts with your light cone
+allows you to target multiple ghosts at once.
+
+This game offers three different difficulty settings and an unlimited amount of
+levels. Ghost Chaos starts off with just two ghosts to catch but with each new
+level a new ghost will be added to the game.
+
+Development:
+Porting: 48 hours
+Fine-tuning, making it compatible for mobile platforms: 3 days
+
+Compability:
+Internet Explorer support is a bit sketchy, the game runs fine but a lot of
+visual effects are missing (the earliest version is 7.0)
+Firefox 3.5 or 3.6: Game works fine, but a few visual effects are missing
+Firefox 4.0+ / Chrome 8.0+ / Safari 5.0+ : Everything is working as it should
+
+
+Used libraries:
+JQuery (http://jquery.com/)
+Smokemonster.js (https://github.com/Stoney-FD/SmokeMonster.js)
+Modernizr (http://modernizr.com)
+Soundmanager2 (http://www.schillmania.com/projects/soundmanager2/)
+
+Note(s):
+To work properly on iOS devices you should add the site to the home screen.
+
+This package contains everything you would need for development and production.
+
+index.html <-- Use for production
+index-debug.html <-- Use for development
+
+/css <-- The stylesheet(s)
+/fonts <-- Fonts for the game in all different kinds of formats
+/img <-- All images needed for the game
+/js <-- All javascript files including libraries
+/sounds <-- Music and sound for the game
+
+soundmanager2* <-- Needed for playing music and sound
+makefile, build.sh and yuicompressor-2.4.2.jar <-- Needed to "compile" the source/stylesheet files (only on UNIX systems)
+manifest.json, 16.png and 128.png <-- Files for the Chrome Web Store
+favicon.ico and apple-touch-icon.png <-- Icons
+ie-css3.htc <-- Support for some CSS3 properties if you're using IE
+readme.txt <-- The file you are reading right now
+
+
+
+This game is also available for iOS devices as a native application: http://itunes.apple.com/en/app/ghost-chaos/id368152729?mt=8
+
+
+License: MIT license
+Copyright (c) 2010 - 2011 Johannes Stein
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+
+(C) 2010 - 2011, Johannes Stein
+http://www.freeze-dev.com
