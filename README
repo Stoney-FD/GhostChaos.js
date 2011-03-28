@@ -1,4 +1,5 @@
 Ghost Chaos Web
+Version 1.2
 http://webgames.freeze-dev.com/ghostchaos
 
 
@@ -17,7 +18,7 @@ level a new ghost will be added to the game.
 
 Development:
 Porting: 48 hours
-Fine-tuning, making it compatible for mobile platforms: 3 days
+Fine-tuning, making it compatible for mobile platforms: 9 days
 
 Compability:
 Internet Explorer support is a bit sketchy, the game runs fine but a lot of
@@ -46,7 +47,6 @@ index-debug.html <-- Use for development
 /js <-- All javascript files including libraries
 /sounds <-- Music and sound for the game
 
-soundmanager2* <-- Needed for playing music and sound
 makefile, build.sh and yuicompressor-2.4.2.jar <-- Needed to "compile" the source/stylesheet files (only on UNIX systems)
 manifest.json, 16.png and 128.png <-- Files for the Chrome Web Store
 favicon.ico and apple-touch-icon.png <-- Icons
