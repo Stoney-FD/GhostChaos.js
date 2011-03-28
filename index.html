@@ -11,7 +11,7 @@
 
   <title>Ghost Choas</title>
 
-  <meta name="viewport" id="view" content="width=device-width; initial-scale=0.9; maximum-scale=0.9; user-scalable=no;" />
+  <meta name="viewport" id="view" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no;" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
 
   <meta name="description" content="The player finds himself in the role of a paranormal activist who is sent to a spooky house to find all ghosts that are living there.">
@@ -25,7 +25,6 @@
   <script src="js/modernizr-1.6.min.js"></script>
   <script src="js/smokemonster.min.js"></script>
   <script src="js/jquery-1.5.min.js"></script>
-  <script src="js/soundmanager2-nodebug-jsmin.js"></script>
   <script src="js/ghostchaos.min.js"></script>
 
 </head>
@@ -47,16 +46,27 @@
     </div>
 
     <div id="loading" class="gameState">
-      <br /><br /><br /><span style="color: #000;">Ghost Chaos is being loaded.<br />Please wait...</span><br /><br />
+      <br /><br /><br /><span style="color: #000; font-size: 32px;">Ghost Chaos is being loaded.<br />Please wait...</span><br /><br />
       <img src="img/loader.gif" />
     </div>
 
     <div id="mainmenu" class="gameState">
       <span id="title">Ghost Chaos</span>
-      <br /><br /><br /><br /><br />
+      <br /><br /><br />
       <span class="button"><a href="javascript:void(0)" onclick="switchGameState('gamedifficulty')">New Game</a></span><br />
       <span class="button"><a href="javascript:void(0)" onclick="switchGameState('howtoplay')">How To Play</a></span><br />
-      <span class="button"><a href="javascript:void(0)" onclick="switchGameState('credits')">Credits</a></span><br />
+      <span class="button"><a href="javascript:void(0)" onclick="switchGameState('achievements')">Achievements</a></span><br />
+      <span class="button"><a href="javascript:void(0)" onclick="switchGameState('credits')" style="font-size: 80%">Credits / About</a></span><br />
+
+	  <span id="btnScale" class="button"><a href="javascript:void(0)" onclick="switchScale()" style="font-size: 70%">Scale: Off</a></span>
+	  
+	  <div id="mouseover_box">
+	    <span id="mouseover_text"></span>
+	  </div>
+	  
+      <div id='btnLowQuality' class='buttonQuality' onmouseover="javascript:onBtnLowQualityOver()" onmouseout="javascript:onBtnLowQualityOut()" onclick="javascript:setQuality(false)"></div>
+      <div id='btnHighQuality' class='buttonQuality' onmouseover="javascript:onBtnHighQualityOver()"
+        onmouseout="javascript:onBtnHighQualityOut()" onclick="javascript:setQuality(true)"></div>
     </div>
 
     <div id="howtoplay" class="gameState">
@@ -66,11 +76,22 @@
       <br />
       <span class="button"><a href="javascript:void(0)" onclick="switchGameState('mainmenu')">Back</a></span><br />
     </div>
+    
+    <div id="achievements" class="gameState">
+      <span id="title">My Achievements</span>
+      <br />
+      <span id="ach_state">0 / 12 Achievements unlocked</span><br /><br /><br />
+      <div id="btnAchUp" onclick="javascript:onBtnAchUp()"> </div>
+      <div id="ach_list"> </div>
+      <div id="btnAchDown" onclick="javascript:onBtnAchDown()"> </div>
+      <br /><br />
+      <span class="button"><a href="javascript:void(0)" onclick="switchGameState('mainmenu')">Back</a></span><br />
+    </div>
 
     <div id="credits" class="gameState">
-      <span id="title">Credits</span>
+      <span id="title">Credits / About</span>
       <br /><br /><br />
-      <span>(C) 2011 Johannes Stein<br /><a href="http://www.freeze-dev.com" target="_blank">http://www.freeze-dev.com</a><br />Version 1.0<br /><br />Marker Felt font (C) Dieter Steffmann</span><br /><br />
+      <span>(C) 2011 Johannes Stein<br /><a href="http://www.freeze-dev.com" target="_blank">http://www.freeze-dev.com</a><br />Version 1.2<br /><br />Komika Display Bold font by <a href="http://www.fontsquirrel.com/foundry/Apostrophic-Labs">Apostrophic Labs</a></span><br />
       <br />
       <span class="button"><a href="javascript:void(0)" onclick="switchGameState('mainmenu')">Back</a></span><br />
     </div>
@@ -100,7 +121,7 @@
     </div>
 
     <div id="gamedifficulty" class="gameState">
-      <span id="title">Choose your difficulty</span>
+      <span id="title" style="font-size: 38px">Choose your difficulty</span>
       <br /><br /><br /><br /><br />
       <span class="button"><a href="javascript:void(0)" onclick="startGame(0, 2)">Easy</a><br />
       <span class="button"><a href="javascript:void(0)" onclick="startGame(1, 2)">Normal</a></span><br />
@@ -108,27 +129,30 @@
     </div>
 
     <div id="game" class="gameState">
-      <div id="overlayGhosts" class="overlay">
-
-      </div>
-      <div id="overlayTime" class="overlay">
-
-      </div>
-      <div id="overlayPause" class="overlay">
-
-      </div>
+      <div id="overlayGhosts" class="overlay"> </div>
+      <div id="overlayTime" class="overlay"> </div>
+      <div id="overlayPause" class="overlay"> </div>
 
       <div id="left" class="blackrect"> </div>
       <div id="top" class="blackrect"> </div>
       <div id="right" class="blackrect"> </div>
       <div id="bottom" class="blackrect"> </div>
 
-      <div id="mouserect">
-
-       </div>
+      <div id="mouserect"> </div>
     </div>
+    
+    <div id="achievement_box"><span id="ach_title">Achievement unlocked</span><br/><span id="ach_text">Some text</span></div>
 
   </div>
+  
+  <audio id="music"> 
+    <source src="sounds/music.ogg" type="audio/ogg" /> 
+    <source src="sounds/music.mp3" type="audio/mp3" /> 
+  </audio> 
+
+  <audio id="boo"> 
+    <source src="sounds/boo.wav" type="audio/x-wav" /> 
+  </audio> 
 
   <script>
    var _gaq = [['_setAccount', 'UA-20511821-2'], ['_trackPageview']];

@@ -1,20 +1,14 @@
 // http://www.naden.de/blog/zufallszahlen-in-javascript-mit-mathrandom
 function getRandom(min,max )
 {
-  if( min > max )
-    return ( -1 );
+  if (min > max) return -1;
+  if (min == max) return min;
 
-  if( min == max )
-    return ( min );
-
-  return ( min + parseInt( Math.random() * ( max-min+1 ) ) );
+  return min + parseInt(Math.random() * (max-min+1));
 }
 
 // http://jsperf.com/javascript-trunc
-function trunc(number)
-{
-  return (number | 0);
-}
+function trunc(number) { return (number | 0); }
 
 // Global variables
 var iOS = false,
@@ -22,39 +16,30 @@ var iOS = false,
     iPhone = false,
     iPod = false,
     mobile = false,
+    contentScale = false,
 	difficulty = 0,
     frameRate = 60,
     canvasPosX = 0,
     canvasPosY = 0,
-    ghost = new Array(),
+    ghost = [],
     timeleft = 0,
     ghostsleft = 0,
     maxGhosts = 0,
     radius = 0,
     gameOver = false,
     nextLevel = false,
+    highQuality = true,
     timeSetter,
     updateSetter,
     animateSetter,
+    bgMusic,
     booSound;
 
-if (navigator.userAgent.match(/Android/i) || navigator.userAgent.match(/webOS/i) || navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/iPad/i))
+DisplayOrientation =
 {
-  mobile = true;
-
-  if ((navigator.userAgent.match(/iPhone/i)) || (navigator.userAgent.match(/iPod/i)) || (navigator.userAgent.match(/iPad/i)))
-  {
-    if (navigator.userAgent.match(/iPhone/i)) iPhone = true;
-    if (navigator.userAgent.match(/iPod/i)) iPod = true;
-    if (navigator.userAgent.match(/iPad/i))
-    {
-      iPad = true;
-      document.getElementById("view").setAttribute('content','width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=no;');
-    }
-
-    iOS = true;
-  }
-}
+  Landscape: 0,
+  Portrait: 1
+};
 
 // Ghost pseudo-class
 objGhost = function()
@@ -109,40 +94,143 @@ objGhost = function()
   }
 
   this.setRandomMovement = _setRandomMovement;
-}
+};
 
-var Game = new function()
+
+// Game "Singleton": Revealing module pattern
+Game = function()
 {
-  this.hole; //< This hole... ... ... I'm not gonna spell that out for ya...
-
   var _posx = 0,
       _posy = 0,
+      _scale = 0.0,
+      _hole,
+      _displayOrientation = 0,
       _width = 460,
       _height = 320,
-      _initialize = function()
+      
+      resize = function()
       {
-        this.hole = new SmokeMonster.Sprite(document.getElementById('game'));
-        this.hole.loadFromFile("img/holes.png");
-        this.hole.alpha = 192;
+        if (trunc($(window).width() / $(window).height()) >= 1)
+          _displayOrientation = 0;
+        else
+          _displayOrientation = 1;
 
-        this.hole.offset.position.x = 128;
-        this.hole.offset.position.y = 128;
+        var scaleX = $(window).width() / _width,
+        	scaleY = $(window).height() / _height;
+        	
+        	
+        if (scaleX < scaleY) _scale = scaleX;
+        else _scale = scaleY;
 
 
-        _posx = ($('#game').width() - this.hole.width) / 2;
-        _posy = ($('#game').height() - this.hole.height) / 2;
-        this.hole.position.z = 3;
-
-        $('#mouserect').mousemove(function()
+        if (navigator.userAgent.match(/Android/i) || navigator.userAgent.match(/Bada/i) || navigator.userAgent.match(/webOS/i) || navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/iPad/i))
         {
-          _posx = (SmokeMonster.Cursor.x - canvasPosX);
-          _posy = (SmokeMonster.Cursor.y - canvasPosY);
+          mobile = true;
+          contentScale = true;
+
+          if ((navigator.userAgent.match(/iPhone/i)) || (navigator.userAgent.match(/iPod/i)) || (navigator.userAgent.match(/iPad/i)))
+          {
+            if (navigator.userAgent.match(/iPhone/i)) iPhone = true;
+            if (navigator.userAgent.match(/iPod/i)) iPod = true;
+            if (navigator.userAgent.match(/iPad/i)) iPad = true;
+
+            iOS = true;
+          }
+        }
+
+        canvasPosX = ($(window).width() - $('#content').width()) / 2;
+        canvasPosY = ($(window).height() - $('#content').height()) / 2;
+
+		if (contentScale) 
+		{
+		  var downScale;
+		  
+		  if (_scale < 1.0) downScale = 0.05;
+		  else downScale = 0.15;
+		  
+		  // Mobile scale will be capped at 1.25x because scaling is quite performance-intensive
+		  if (mobile)
+		  {
+			if (_scale > 1.4) _scale = 1.4;
+		  }
+		  
+		  
+		  document.getElementById('content').style.transform = "scale(" + (_scale - downScale) + ")";
+		  document.getElementById('content').style.webkitTransform = "scale(" + (_scale - downScale) + ")";
+		  document.getElementById('content').style.mozTransform = "scale(" + (_scale - downScale) + ")";
+		}
+
+		
+      },
+      
+      initialize = function()
+      {
+        // Using document ready in order to reduce screw-ups :)
+        $(document).ready(function()
+        {
+        	$('body').width($(window).width());
+        	$('body').height($(window).height());
+        
+        	$('div#content').width(_width);
+            $('div#content').height(_height);
+    
+            $('div.gameState').width(_width);
+    
+            $('div#loading').width(_width);
+            $('div#loading').height(_height);
+    
+            $('div.blackrect').width(_width);
+            $('div.blackrect').height(_height);
+    
+            $('div#mouserect').width(_width);
+            $('div#mouserect').height(_height);
+            
+            // Load data from local storage
+            if (Modernizr.localstorage)
+            {
+            	if ((typeof(localStorage["GhostChaos.Config.Scale"]) != "undefined") && (localStorage["GhostChaos.Config.Scale"] != null) && (localStorage["GhostChaos.Config.Scale"] != "")) 
+            	{
+            	  contentScale = localStorage["GhostChaos.Config.Scale"];
+            	  updateScaleLabel();
+            	  Game.resize();
+            	}
+            	
+            	if ((typeof(localStorage["GhostChaos.Config.HighQuality"]) !== "undefined") && (localStorage["GhostChaos.Config.HighQuality"] != null) && (localStorage["GhostChaos.Config.HighQuality"] != ""))
+            	{
+            	  setQuality(localStorage["GhostChaos.Config.HighQuality"]);
+            	}
+            }
+            
         });
 
-        $('body').mousemove(function()
+        // Resize-moi!
+        resize();
+
+		_hole = new SmokeMonster.Sprite(document.getElementById('game'));
+        _hole.loadFromFile("img/holes.png");
+
+        _hole.offset.position.x = 128;
+        _hole.offset.position.y = 128;
+
+
+        _posx = ($('#game').width() - _hole.width) / 2;
+        _posy = ($('#game').height() - _hole.height) / 2;
+        _hole.position.z = 3;
+
+        $('#mouserect').mousemove(function(e)
         {
-          _posx = (SmokeMonster.Cursor.x - canvasPosX);
-          _posy = (SmokeMonster.Cursor.y - canvasPosY);
+          _posx = e.pageX - canvasPosX;
+          _posy = e.pageY - canvasPosY;
+          //_posx = (SmokeMonster.Cursor.x - canvasPosX);
+          //_posy = (SmokeMonster.Cursor.y - canvasPosY);
+        });
+
+        $('body').mousemove(function(e)
+        {
+          _posx = e.pageX - canvasPosX;
+          _posy = e.pageY - canvasPosY;
+          //_posx = (SmokeMonster.Cursor.x - canvasPosX);
+          //_posy = (SmokeMonster.Cursor.y - canvasPosY);
         });
 
         // Touch move events for iPhone/Android
@@ -160,6 +248,8 @@ var Game = new function()
         {
           document.getElementById('mouserect').addEventListener('touchmove', holeTouchMoveEvent, false);
           document.body.addEventListener('touchmove', holeTouchMoveEvent, false);
+          
+          $('#btnScale').hide();
         }
 
 
@@ -167,32 +257,44 @@ var Game = new function()
         {
           switchGameState('pauselevel');
         });
-
-
       },
-      _draw = function()
+      
+      updateHole = function(difficulty)
+      {
+        if (highQuality) 
+        {
+          $('.blackrect').css('opacity', 0.75);
+          _hole.alpha = 192;
+        }
+        else 
+        {
+          $('.blackrect').css('opacity', 1.0);
+          _hole.alpha = 255;
+        }
+      
+        _hole.clipRect.make(256 * difficulty, 0, 256, 256);
+      },
+      
+      draw = function()
       {
         for (var i = 0; i < ghost.length; i++)
           ghost[i].sprite.draw();
 
-        this.hole.position.x = _posx;
-        this.hole.position.y = _posy;
+        _hole.position.x = _posx;
+        _hole.position.y = _posy;
 
-        $('div#left.blackrect').width(_posx - 128);
 
-        $('div#right.blackrect').css('left', _posx + 128);
-        $('div#right.blackrect').width(_width - _posx - 127);
+        $('div#left.blackrect').css('clip', 'rect({0}px, {1}px, {2}px, {3}px)'.format(0, _posx - 128, _height, 0));
+        $('div#right.blackrect').css('clip', 'rect({0}px, {1}px, {2}px, {3}px)'.format(0, _width, _height, _posx + 128));
 
-        $('div#top.blackrect').css('left', _posx - 128);
-        $('div#top.blackrect').height(_posy - 128);
+        $('div#top.blackrect').css('clip', 'rect({0}px, {1}px, {2}px, {3}px)'.format(0, _posx + 128, _posy - 128, _posx - 128));
+        $('div#bottom.blackrect').css('clip', 'rect({0}px, {1}px, {2}px, {3}px)'.format(_posy + 128, _posx + 128, _height, _posx - 128));
 
-        $('div#bottom.blackrect').css('left', _posx - 128);
-        $('div#bottom.blackrect').css('top', _posy + 128);
-        $('div#bottom.blackrect').height(_height - _posy - 127);
 
-        this.hole.draw();
+        _hole.draw();
       },
-      _update = function()
+      
+      update = function()
       {
         for (var i = 0; i < ghost.length; i++)
         {
@@ -209,34 +311,34 @@ var Game = new function()
 
 
           var diffX = Math.abs(ghost[i].sprite.position.x - _posx),
-              diffY = Math.abs(ghost[i].sprite.position.y - _posy),
-              distance = Math.sqrt(diffX * diffX + diffY * diffY);
+        	  diffY = Math.abs(ghost[i].sprite.position.y - _posy),
+        	  distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
 
           if (distance < radius)
           {
-            if (!ghost[i].dead)
-            {
-              ghost[i].sprite.visible = true;
+        	if (!ghost[i].dead)
+        	{
+        	  ghost[i].sprite.visible = true;
 
-              if (ghost[i].sprite.alpha > 0)
-                ghost[i].sprite.alpha--;
-              else
-              {
-                ghost[i].dead = true;
-                ghostsleft--;
+        	  if (ghost[i].sprite.alpha > 0)
+        	    ghost[i].sprite.alpha--;
+        	  else
+        	  {
+        	    ghost[i].dead = true;
+        	    ghostsleft--;
 
-                booSound.play();
-              }
-            }
-            else ghost[i].sprite.visible = false;
+        	    if (typeof(booSound) != "undefined") booSound.play();
+        	  }
+        	}
+        	else ghost[i].sprite.visible = false;
 
           }
           else
           {
-            ghost[i].sprite.visible = false;
+        	ghost[i].sprite.visible = false;
 
-            if (!ghost[i].dead) ghost[i].sprite.alpha = 255;
+        	if (!ghost[i].dead) ghost[i].sprite.alpha = 255;
           }
 
         }
@@ -248,32 +350,117 @@ var Game = new function()
         if (nextLevel) switchGameState('nextlevel');
 
         $('#overlayGhosts').html('x ' + ghostsleft);
+      };
+      
+  return {
+    width: _width,
+  	height: _height,
+  	displayOrientation: _displayOrientation,
+  	resize: resize,
+  	initialize: initialize,
+  	updateHole: updateHole,
+  	draw: draw,
+  	update: update
+  };
+  
+}();
 
-        if (_posx <= 128) $('div#left.blackrect').hide();
-          else $('div#left.blackrect').show();
+// Achievement "Singleton": Revealing module pattern
+Achievements = function()
+{
+	//Private object "array" stores all achievements
+	var array = {},
+		_localStorageKey,
+	
+	initialize = function(localStorageKey)
+	{
+		// Saves localStorage key internally
+		_localStorageKey = localStorageKey;
+	
+		// Loads achievements from local storage if any
+		if (Modernizr.localstorage)
+			if ((typeof(localStorage[_localStorageKey]) != "undefined") && (localStorage[_localStorageKey] != null) && (localStorage[_localStorageKey] != "")) array = jQuery.parseJSON(localStorage[_localStorageKey]);
+	},
+	
+	register = function(text, description, icon)
+	{
+		array[text] = { active: false };
+		if (typeof(description) !== "undefined") array[text]["description"] = description;
+		if (typeof(icon) !== "undefined") array[text]["icon"] = icon;
+	},
+	
+	getCount = function()
+	{
+		var count = 0;
+		for (var i in array) count++;
+		return count;
+	}
+	
+	getUnlockedCount = function()
+	{
+		var count = 0;
+		for (var i in array)
+		{
+			if (array[i]["active"]) count++;
+		}
+		return count;
+	}
+	
+	list = function()
+	{
+		// Locked achievements will be shown in a grey-ish color
+		var result = "";
+		for (var i in array)
+		{
+			if (array[i]["active"]) result += '<div class="ach_box unlocked"><span class="ach_unlocked">' + i + '</span><br /><span class="ach_details">' + array[i]["description"] + '</span></div><br /><br />';
+			else result += '<div class="ach_box locked"><span class="ach_locked">' + i + '</span><br /><span class="ach_details">' + array[i]["description"] + '</span></div><br /><br />';
+		}
+		
+		return result;
+	}
+	
+	show = function(text)
+	{
+		// If someone forget to register an achievement
+		if (array[text] === "undefined") register(text);
+	
+		if (!array[text]["active"])
+		{
+			if ((typeof(array[text].icon) != "undefined") && (array[text].icon != "")) $('#achievement_box').css("background-image", "url(" + array[text].icon + ")");
+			
+			
+			$('#ach_text').html(text);
+			$('#achievement_box').css({opacity: 0.0});
+			
+			$('#achievement_box').animate({opacity: 1.0, bottom: '8px'}, 750);
+			
+			setTimeout(function() 
+			{ 
+			  $('#achievement_box').animate({opacity: 0.0, bottom: '-80px'}, 750);
+			}, 2500);
+			
+			array[text].active = true;
+		}
+		
+		if (Modernizr.localstorage) localStorage[_localStorageKey] = JSON.stringify(array);
+	};
+	
+	return {
+		initialize: initialize,
+		getCount: getCount,
+		getUnlockedCount: getUnlockedCount,
+		list: list,
+		register: register,
+		show: show
+	};
+}();
 
-        if (_posy <= 128) $('div#top.blackrect').hide();
-          else $('div#top.blackrect').show();
 
-        if (_posx >= (480 - 128)) $('div#right.blackrect').hide();
-          else $('div#right.blackrect').show();
-
-        if (_posy >= (360 - 128)) $('div#bottom.blackrect').hide();
-          else $('div#bottom.blackrect').show();
-      }
-
-
-
-  this.initialize = _initialize;
-  this.draw = _draw;
-  this.update = _update;
-
-  this.width = _width;
-  this.height = _height;
-}
 
 function animateGhosts()
 {
+  if (!highQuality) return;
+
   // Animation
   for (var i = 0; i < ghost.length; i++)
   {
@@ -291,28 +478,160 @@ function animateGhosts()
   }
 }
 
-
-function setCanvasPos()
+function setQuality(isHighQuality)
 {
-  canvasPosX = ($(document).width() - $('#content').width()) / 2;
-  canvasPosY = ($(document).height() - $('#content').height()) / 2;
+  highQuality = isHighQuality;
 
-  $('#content').css('left', canvasPosX);
-  $('#content').css('top', canvasPosY);
+  if (highQuality)
+  {
+    if ($('#content').hasClass('lowQuality')) $('#content').removeClass('lowQuality');
+    if ($('#mouseover_box').hasClass('lowQuality')) $('#mouseover_box').removeClass('lowQuality');
+    if ($('#achievement_box').hasClass('lowQuality')) $('#achievement_box').removeClass('lowQuality');
+    if ($('.buttonQuality').hasClass('lowQuality')) $('.buttonQuality').removeClass('lowQuality');
+    if ($('.overlay').hasClass('lowQuality')) $('.overlay').removeClass('lowQuality');
+    if ($('span').hasClass('lowQuality')) $('span').removeClass('lowQuality');
+    
+    document.getElementById("btnLowQuality").style.backgroundColor = '#000';
+    document.getElementById("btnHighQuality").style.backgroundColor = '#aaaa00';
+  }
+  else
+  { 
+    $('#content').addClass('lowQuality');
+    $('#mouseover_box').addClass('lowQuality');
+    $('#achievement_box').addClass('lowQuality');
+    $('.buttonQuality').addClass('lowQuality');
+    $('.overlay').addClass('lowQuality');
+    $('span').addClass('lowQuality');
+    
+    document.getElementById("btnLowQuality").style.backgroundColor= '#aaaa00';
+    document.getElementById("btnHighQuality").style.backgroundColor = '#000';
+  }
+  
+  if (Modernizr.localStorage)
+  	localStorage["GhostChaos.Config.HighQuality"] = highQuality;
 }
+
+function onBtnLowQualityOver()
+{
+  $('#mouseover_box').css('opacity', 1.0);
+  $('#mouseover_text').html('Low Quality');
+
+  if (!highQuality) document.getElementById("btnLowQuality").style.backgroundColor= '#888800';
+  else
+    document.getElementById("btnLowQuality").style.backgroundColor= '#444400';
+}
+
+function onBtnLowQualityOut()
+{
+  $('#mouseover_box').css('opacity', 0.0);
+  
+  if (highQuality)
+    document.getElementById("btnLowQuality").style.backgroundColor= '#000';
+  else
+    document.getElementById("btnLowQuality").style.backgroundColor= '#aaaa00';
+}
+
+function onBtnHighQualityOver()
+{
+  $('#mouseover_box').css('opacity', 1.0);
+  $('#mouseover_text').html('High Quality');
+
+  if (highQuality) document.getElementById("btnHighQuality").style.backgroundColor= '#888800';
+  else
+    document.getElementById("btnHighQuality").style.backgroundColor= '#444400';
+}
+
+function onBtnHighQualityOut()
+{
+  $('#mouseover_box').css('opacity', 0.0);
+  
+  if (highQuality)
+    document.getElementById("btnHighQuality").style.backgroundColor= '#aaaa00';
+  else
+    document.getElementById("btnHighQuality").style.backgroundColor= '#000';
+}
+
+function switchScale()
+{
+	contentScale =! contentScale;
+	
+	if (Modernizr.localstorage) localStorage["GhostChaos.Config.Scale"] = contentScale;
+	
+	updateScaleLabel();
+	
+	Game.resize();
+}
+
+function onBtnAchUp()
+{
+	$('#ach_list').scrollTop($('#ach_list').scrollTop() - 40);
+}
+
+function onBtnAchDown()
+{
+	$('#ach_list').scrollTop($('#ach_list').scrollTop() + 40);
+}
+
+function updateScaleLabel()
+{
+	if (contentScale) $('#btnScale').html('<a href="javascript:void(0)" onclick="switchScale()" style="font-size: 70%">Scale: On</a>');
+	else 
+	{
+	  $('#btnScale').html('<a href="javascript:void(0)" onclick="switchScale()" style="font-size: 70%">Scale: Off</a>');
+	  document.getElementById('content').style.webkitTransform = "scale(1.0)";
+	}
+}
+
 
 function init()
 {
-  switchGameState("loading");
-
   // Hack for hiding adress bar on iOS devices
   if (iOS) window.top.scrollTo(0, 1);
+  
+  $('#mouseover_box').css('opacity', 0.0);
+  
+  // Load achievements
+  Achievements.register('Who you gonna call?', 'Master level 1 on an easy difficulty setting'); // Master level 1 (easy)
+  Achievements.register('OMG! Double Ghost all the way!', 'Master level 1 on a normal difficulty setting'); // Master level 1 (normal)
+  Achievements.register('Good Ghost Hunting', 'Master level 1 on a hard difficulty setting'); // Master level 1 (hard)
+  Achievements.register('Those things are getting fast', 'Master level 7 on an easy difficulty setting'); // Master level 7 (easy)
+  Achievements.register('I see dead... err... ghosts', 'Master level 7 on a normal difficulty setting'); // Master level 7 (normal)
+  Achievements.register('Anyone got a better light?', 'Master level 7 on a hard difficulty setting'); // Master level 7 (hard)
+  Achievements.register('Ghost Apocalypse', 'Master level 21 on an easy difficulty setting'); // Master level 21 (easy)
+  Achievements.register('Getting the hang of this', 'Master level 21 on a normal difficulty setting'); // Master level 21 (normal)
+  Achievements.register('Mission Impossible', 'Master level 21 on  a hard difficulty setting'); // Master level 21 (hard)
+  Achievements.register('Someone made this game?', 'View credits screen'); // Clicking on 'Credits'
+  
+  Achievements.initialize("GhostChaos.Achievements");
 
+  // Initialize objects here
+  Game.initialize();
+  
+  switchGameState("loading");
+  
+  if (!bgMusic) 
+  { 
+    bgMusic = document.getElementById("music");  
+  }
+  
+  if (bgMusic) 
+  {
+    bgMusic.addEventListener('ended', function(){ this.currentTime = 0 }, false);
+    bgMusic.play();
+    
+  }
+  
+  
+  if (!booSound)
+  {
+    booSound = document.getElementById("boo");
+  }
+ 
 
   // Init sound
 
   // Initialize SoundManager2
-  soundManager.url = ''; // directory where SM2 .SWFs live
+  /*soundManager.url = ''; // directory where SM2 .SWFs live
 
   soundManager.useHTML5Audio = true;
   soundManager.useFlashBlock = false;
@@ -328,8 +647,6 @@ function init()
         id: 'music',
         url: 'sounds/music.mp3',
         loop: 'infinite'
-        // onload: [ event handler function object ],
-        // other options here..
       });
 
       bgmusic.play();
@@ -339,25 +656,27 @@ function init()
         url: 'sounds/boo.wav'
       });
     }
-  });
-
-  setCanvasPos();
-
-  // Initialize objects here
-  Game.initialize();
+  });*/
 
   switchGameState("mainmenu");
 }
 
 
 if (window.addEventListener)       //< Also: Refresh values if windows has been resized
-	window.addEventListener('resize', function (event) { setCanvasPos(); } , false);
+	window.addEventListener('resize', function (event) { Game.resize(); } , false);
 else
 {
 	if (window.attachEvent)
-		window.attachEvent('onresize', function (event) { setCanvasPos(); } );
+		window.attachEvent('onresize', function (event) { Game.resize(); } );
 }
 
+if (mobile)
+{
+	body.onorientationchange = function()
+    {
+      Game.resize();
+    }
+}
 
 
 function switchGameState(stateName)
@@ -365,7 +684,8 @@ function switchGameState(stateName)
   $('.gameState').hide();
 
   $('#'+stateName).show();
-
+  
+  if (stateName == 'credits') Achievements.show('Someone made this game?');
 
   if ((stateName == 'gameover') || (stateName == 'nextlevel') || (stateName == 'pauselevel'))
   {
@@ -379,13 +699,57 @@ function switchGameState(stateName)
 
       switch (difficulty)
       {
-        case 0: dfcString = "Easy"; break;
-        case 1: dfcString = "Normal"; break;
-        case 2: dfcString = "Hard"; break;
+        case 0: 
+        {
+        	dfcString = "Easy"; 
+        	
+        	switch (maxGhost - 1)
+        	{
+        		case 1: Achievements.show('Who you gonna call?'); break;
+        		case 7: Achievements.show('Those things are getting fast'); break;
+        		case 21: Achievements.show('Ghost Apocalypse'); break;
+        	}
+        	
+        	break;
+        }
+        case 1: 
+        {
+        	dfcString = "Normal"; 
+        	
+        	switch (maxGhost - 1)
+        	{
+        		case 1: Achievements.show('OMG! Double Ghost all the way!'); break;
+        		case 7: Achievements.show('I see dead... err... ghosts'); break;
+        		case 21: Achievements.show('Getting the hang of this'); break;
+        	}
+        	
+        	break;
+        }
+        case 2: 
+        {
+        	dfcString = "Hard"; 
+        	
+        	switch (maxGhost - 1)
+        	{
+        		case 1: Achievements.show('Good Ghost Hunting'); break;
+        		case 7: Achievements.show('Anyone got a better light?'); break;
+        		case 21: Achievements.show('Mission Impossible'); break;
+        	}
+        	
+        	break;
+        }
       }
 
       $('#congratz').html('You mastered Level ' + (maxGhost - 1) + ' (' + dfcString + ').');
+      
     }
+  }
+  
+  if (stateName == 'achievements')
+  {
+    $('#ach_state').html("{0} / {1} Achievements unlocked".format(Achievements.getUnlockedCount(), Achievements.getCount()));
+    
+    $('#ach_list').html(Achievements.list());
   }
 }
 
@@ -439,8 +803,7 @@ function startGame(difficultyLevel, ghostMax)
 
   switchGameState('game');
 
-
-  Game.hole.clipRect.make(256 * difficulty, 0, 256, 256);
+  Game.updateHole(difficulty);
 
   radius = 128 - (difficultyLevel * 32) - 23;
 
