@@ -1,0 +1,30 @@
+.transition(@property: all, @time: 600ms, @ease: linear, @delay: 0ms)
+{
+  transition: @property @time @ease @delay;
+  -webkit-transition: @property @time @ease @delay;
+  -moz-transition: @property @time @ease @delay;
+  -o-transition: @property @time @ease @delay;
+  -ms-transition: @property @time @ease @delay;
+}
+
+.border-radius(@strength: 4px)
+{
+  border-radius: @strength @strength @strength @strength;
+  -moz-border-radius: @strength;
+  -webkit-border-radius: @strength;
+}
+
+.box-shadow(@x: 0px, @y: 0px, @blur: 8px, @color: #000)
+{
+  -moz-box-shadow: @x @y @blur @color;
+  -webkit-box-shadow: @x @y @blur @color;
+  -ms-box-shadow: @x @y @blur @color;
+  box-shadow: @x @y @blur @color;
+}
+
+.opacity(@alpha: 0.5)
+{
+  -moz-opacity: @alpha;
+  -khtml-opacity: @alpha;
+  opacity: @alpha;
+}

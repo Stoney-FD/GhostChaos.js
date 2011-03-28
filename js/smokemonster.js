@@ -400,7 +400,7 @@ SmokeMonster.Cursor = new SmokeMonster.Vector();
 
 function updateCursor(event)
 {
-  if (IE)
+  /*if (IE)
   {
     SmokeMonster.Cursor.x = window.event.clientX + document.body.scrollLeft;
     SmokeMonster.Cursor.y = window.event.clientY + document.body.scrollTop;
@@ -409,7 +409,10 @@ function updateCursor(event)
   {
     SmokeMonster.Cursor.x = event.pageX;
     SmokeMonster.Cursor.y = event.pageY;
-  }
+  }*/
+
+  SmokeMonster.Cursor.x = event.pageX;
+  SmokeMonster.Cursor.y = event.pageY;
 }
 
 if (!IE) document.captureEvents(Event.MOUSEMOVE);

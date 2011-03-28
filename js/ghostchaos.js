@@ -186,18 +186,18 @@ Game = function()
             $('div#mouserect').height(_height);
             
             // Load data from local storage
-            if (Modernizr.localstorage)
+            if (window.localStorage)
             {
-            	if ((typeof(localStorage["GhostChaos.Config.Scale"]) != "undefined") && (localStorage["GhostChaos.Config.Scale"] != null) && (localStorage["GhostChaos.Config.Scale"] != "")) 
+            	if ((typeof(window.localStorage["GhostChaos.Config.Scale"]) != "undefined") && (window.localStorage["GhostChaos.Config.Scale"] != null) && (window.localStorage["GhostChaos.Config.Scale"] != "")) 
             	{
-            	  contentScale = localStorage["GhostChaos.Config.Scale"];
+            	  contentScale = window.localStorage["GhostChaos.Config.Scale"];
             	  updateScaleLabel();
             	  Game.resize();
             	}
             	
-            	if ((typeof(localStorage["GhostChaos.Config.HighQuality"]) !== "undefined") && (localStorage["GhostChaos.Config.HighQuality"] != null) && (localStorage["GhostChaos.Config.HighQuality"] != ""))
+            	if ((typeof(window.localStorage["GhostChaos.Config.HighQuality"]) !== "undefined") && (window.localStorage["GhostChaos.Config.HighQuality"] != null) && (window.localStorage["GhostChaos.Config.HighQuality"] != ""))
             	{
-            	  setQuality(localStorage["GhostChaos.Config.HighQuality"]);
+            	  setQuality(window.localStorage["GhostChaos.Config.HighQuality"]);
             	}
             }
             
@@ -378,8 +378,8 @@ Achievements = function()
 		_localStorageKey = localStorageKey;
 	
 		// Loads achievements from local storage if any
-		if (Modernizr.localstorage)
-			if ((typeof(localStorage[_localStorageKey]) != "undefined") && (localStorage[_localStorageKey] != null) && (localStorage[_localStorageKey] != "")) array = jQuery.parseJSON(localStorage[_localStorageKey]);
+		if (window.localStorage)
+			if ((typeof(window.localStorage[_localStorageKey]) != "undefined") && (window.localStorage[_localStorageKey] != null) && (window.localStorage[_localStorageKey] != "")) array = JSON.parse(window.localStorage[_localStorageKey]);
 	},
 	
 	register = function(text, description, icon)
@@ -442,7 +442,7 @@ Achievements = function()
 			array[text].active = true;
 		}
 		
-		if (Modernizr.localstorage) localStorage[_localStorageKey] = JSON.stringify(array);
+		if (window.localStorage) window.localStorage[_localStorageKey] = JSON.stringify(array);
 	};
 	
 	return {
@@ -507,8 +507,8 @@ function setQuality(isHighQuality)
     document.getElementById("btnHighQuality").style.backgroundColor = '#000';
   }
   
-  if (Modernizr.localStorage)
-  	localStorage["GhostChaos.Config.HighQuality"] = highQuality;
+  if (window.localStorage)
+  	window.localStorage["GhostChaos.Config.HighQuality"] = highQuality;
 }
 
 function onBtnLowQualityOver()
@@ -555,7 +555,7 @@ function switchScale()
 {
 	contentScale =! contentScale;
 	
-	if (Modernizr.localstorage) localStorage["GhostChaos.Config.Scale"] = contentScale;
+	if (window.localStorage) window.localStorage["GhostChaos.Config.Scale"] = contentScale;
 	
 	updateScaleLabel();
 	
