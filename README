@@ -1,5 +1,5 @@
 Ghost Chaos Web
-Version 1.2
+Version 1.3-Pre
 http://webgames.freeze-dev.com/ghostchaos
 
 
@@ -31,7 +31,6 @@ Used libraries:
 JQuery (http://jquery.com/)
 Smokemonster.js (https://github.com/Stoney-FD/SmokeMonster.js)
 Modernizr (http://modernizr.com)
-Soundmanager2 (http://www.schillmania.com/projects/soundmanager2/)
 
 Note(s):
 To work properly on iOS devices you should add the site to the home screen.

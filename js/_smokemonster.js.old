@@ -1,0 +1,1081 @@
+/**
+ *
+ *	SmokeMonster.js
+ *
+ *	What is SmokeMonster?
+ *		SmokeMonster is John Locke, or is he?
+ *		But seriously, SmokeMonster.js is a small graphics library based on DOM.
+ *    This library depends on Modernizr, still using Modernizr is optional.   
+ *
+ *  Why SmokeMonster?
+ *		Well, there had to be some kind of nemesis on the island, right?
+ *		But seriously, we here at Freeze Development have been making video games
+ *		for over two centuries and with our...
+ *		But seriously seriously we are working on ElysionWeb, a HTML5 game framwork
+ *		using Canvas, WebGL and SVG/VML with Raphael as its rendering backends.
+ *		So want if you want to use the DOM to put together some small simple game
+ *		you are doomed if you wanted to use ElysionWeb here. Well, "doomed" is such
+ *    a strong word here. ;)
+ *    
+ *    This is what SmokeMonster was made for:
+ *      It's a tiny web graphics library based on Document Object Model (DOM).
+ *    
+ *    You can make quick and simple Javascript games based on DOM. 
+ *    But you should definitely give ElysionWeb a try once it's finished.
+ * 
+ *    
+ *
+ *  How is SmokeMonster?
+ *  	Oh, you wanna see how it's done? Here ya go:
+ *			You don't need to initialize anything, just begin creating your
+ *			objects.
+ *
+ *
+ *      var mySprite = new SmokeMonster.Sprite();
+ *      mySprite.loadFromFile("freckles.png");
+ *      mySprite.position.make(50, 50);
+ *      mySprite.draw();
+ * 
+ *      This will draw a sprite called mySprite at x: 50 and y: 50. You can
+ *		manipulate additional attributes, like rotation, scaling, opacity, etc.
+ *		Take a look at this:
+ *
+ *		mySprite.alpha = 128;
+ *		mySprite.angle = 22.5;
+ *		mySprite.scale.x = 2.5;
+ *
+ *		Now our sprite is being drawn with at half opacity, rotated 22.5 degrees
+ *		and its witdth scale at factor 2.5.
+ *
+ *
+ *		var myContainer = new SmokeMonster.Container();
+ *		myContainer.width = 50;
+ *		myContainer.height = 50;
+ *		myContainer.position.make(60, 60);
+ *		myContainer.backgroundColor.make(255, 255, 0);
+ *		myContainer.borderRadius.make(15, 15);
+ *		myContainer.draw();
+ *
+ *		A container can be actually be everything you want it to be, for example
+ *		a rect, a rounded rect (which it is in this example), or just an object
+ *		for grouping child objects.
+ *		The constructor takes width and height parameter, after that the position
+ *		will be set to Left: 60 | Top: 60, with a yellow background color and
+ *		a barder radius of 15 pixels.
+ *		The draw() method needs to be called on every object to be displayed
+ *		on the page.
+ *
+ *
+ *		Grouping objects:
+ *      The first parameter of an object can also take the parent object, in which
+ *		case the new object will be the child object of the specified object.
+ *		The child object position is then relative, the parent object's position
+ *		is still absolute.
+ *			If you want to get the absolute position of an object, use the
+ *			the method getAbsolutePosition() which will return the position
+ *			as elVector.
+ *
+ *		mySprite = new elSprite(myContainer);
+ *      mySprite.position.make(40, 40);
+ *
+ *		mySprite will now be drawn at Left: 100 | Top: 100.
+ *
+ *
+ *
+ *  So, that were the basics, if you want to know more take a look at the
+ *  examples and read the documentation.
+ * 
+ * 
+ *  This whole SmokeMonster thing was made in just a few days. It hasn't been
+ *  a constant development though, just a few hours every now and then.
+ *
+ *  There won't probably be much new features after this initial relase, as
+ *  we will concentrate our efforts on ElysionWeb. There may be a bug fix release
+ *  if users find some nasty bugs.
+ * 
+ * 
+ *  License:
+ *  Copyright (C) 2011 by Johannes Stein, Freeze Development (http://www.freeze-dev.com)
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
+// SmokeMonster namepace - He is coming for you next (I really need to quit on the Lost references, right?)
+if (typeof SmokeMonster == 'undefined') var SmokeMonster = {};
+
+// You probably already know Modernizr is cool, we use Modernizr to test for CSS3 stuff
+if (typeof Modernizr == 'undefined') var Modernizr = {};
+
+var objectCount = 0,
+	  IE = document.all ? true : false;
+
+function createNewUniqueID(objectName)
+{
+	objectCount++;
+	return objectName + "-" + ("00000" + objectCount).slice(-5);
+}
+
+// Format string, something we need quite often
+String.prototype.format = function()
+{
+    var formatted = this;
+    for (var i = 0; i < arguments.length; i++)
+    {
+        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+        formatted = formatted.replace(regexp, arguments[i]);
+    }
+    return formatted;
+};
+
+/**
+ *
+ * SmokeMonster General functions
+ *
+ */
+
+SmokeMonster.add = function(parentObject, childObject)
+{
+    if (typeof parentObject == "string")
+        document.getElementsByTagName(parentObject)[0].appendChild(childObject);
+    else
+        parentObject.appendChild(childObject);
+};
+
+SmokeMonster.remove = function(parentObject, childObject)
+{
+    if (typeof parentObject == "string")
+        document.getElementsByTagName(parentObject)[0].removeChild(childObject);
+    else
+        parentObject.removeChild(childObject);
+};
+
+
+/**
+ * 
+ * SmokeMonster Types
+ * 
+ */
+
+// Color
+SmokeMonster.Color = function(r, g, b, a)
+{
+	r = (typeof(r) === "undefined") ? 0 : r,
+  	g = (typeof(g) === "undefined") ? 0 : g,
+  	b = (typeof(b) === "undefined") ? 0 : b,
+  	a = (typeof(a) === "undefined") ? 1 : a;
+  
+  // Returns Javascript Color Code
+  var get = function()
+  {
+  	if (Modernizr.rgba)
+  	{
+	    if ((a > 0) && (a < 1)) return "rgba({0},{1},{2},{3})".format(r, g, b, a);
+	    
+	    if ((a > 1) && (a < 255))
+	    {
+	      var fAlpha = a / 255;
+	      return "rgba({0},{1},{2},{3})".format(r, g, b, fAlpha);
+	    }
+	    else return "rgb({0},{1},{2})".format(r, g, b);
+	}
+	else return toHex();
+  },
+  
+  toString = function()
+  {
+    return get();  
+  },
+  
+  toHex = function()
+  {
+    return "#{0}{1}{2}".format(r.toString(16), g.toString(16), b.toString(16));
+  },
+
+  make = function(newR, newG, newB, newA)
+  {
+    r = (typeof(newR) === "undefined") ? r : newR;
+    g = (typeof(newG) === "undefined") ? g : newG;
+    b = (typeof(newB) === "undefined") ? b : newB;
+    a = (typeof(newA) === "undefined") ? a : newA;
+  };
+  
+  return {
+  	r: r,
+  	g: g,
+  	b: b,
+  	a: a,
+  	get: get,
+  	toString: toString,
+  	toHex: toHex,
+  	make: make
+  };
+  
+};
+
+SmokeMonster.UnitType =
+{
+  stPixel: "px",
+  stPercent: "%"
+}
+
+SmokeMonster.Vector = function(x, y, z)
+{
+	x = (typeof(x) === "undefined") ? 0.0 : x,
+  	y = (typeof(y) === "undefined") ? 0.0 : y,
+    z = (typeof(z) === "undefined") ? 0.0 : z;
+
+  var type = SmokeMonster.UnitType.stPixel,
+
+  // Vector to String
+  toString = function()
+  {
+  	var retString = "";
+
+    if (x != 0.0) retString = retString + "X: {0} {1}; ".format(x, type);
+    if (y != 0.0) retString = retString + "Y: {0} {1}; ".format(y, type);
+    if (z != 0.0) retString = retString + "Z: {0} {1}; ".format(z, type);
+
+    return retString;
+  },
+  
+  multiply = function(multi)
+  {
+    x = x * multi;
+    y = y * mulit;
+    z = z * multi;
+  }
+
+  make = function(newX, newY, newZ)
+  {
+    x = (typeof(newX) === "undefined") ? x : newX;
+    y = (typeof(newY) === "undefined") ? y : newY;
+    z = (typeof(newZ) === "undefined") ? z : newZ;
+  }
+  
+  return {
+  	type: type,
+  	x: x,
+  	y: y,
+  	z: z,
+  	toString: toString,
+  	multiply: multiply,
+  	make: make
+  }
+};
+
+SmokeMonster.Rect = function(x, y, w, h)
+{
+	x = (typeof(x) === "undefined") ? 0 : x,
+  	y = (typeof(y) === "undefined") ? 0 : y,
+  	w = (typeof(w) === "undefined") ? 0 : w,
+  	h = (typeof(h) === "undefined") ? 0 : h;
+  
+  // Rect to String
+  var toString = function()
+  {
+    return "X: {0}; Y: {1}; W: {2}; H: {3};".format(x, y, w, h);
+  },
+  
+  get = function()
+  {
+    return "rect({0}px, {1}px, {2}px, {3}px)".format(x, y, w, h);
+  },
+  
+  area = function()
+  {
+    return (2 * w + 2 * h); 
+  },
+
+  isEmpty = function()
+  {
+  	if ((x == 0) && (y == 0) && (w == 0) && (h == 0))
+      return true;
+    else
+      return false;
+  },
+  
+  hasSameValue = function()
+  {
+    if ((x == y) && (y == w) && (w == h))
+      return true;
+    else
+      return false;
+  },
+
+  make = function(newX, newY, newW, newH)
+  {
+    x = (typeof(newX) === "undefined") ? x : newX;
+    y = (typeof(newY) === "undefined") ? y : newY;
+    w = (typeof(newW) === "undefined") ? w : newW;
+    h = (typeof(newH) === "undefined") ? h : newH;
+  };
+  
+  
+  return {
+  	x: x,
+  	y: y,
+  	w: w,
+  	h: h,
+  	toString: toString,
+  	get: get,
+  	area: area,
+  	isEmpty: isEmpty,
+  	hasSameValue: hasSameValue,
+  	make: make
+  }
+};
+
+SmokeMonster.ShadowType =
+{
+  stDefault: "",
+  stInset: "inset",
+  stInner: "inner"
+}
+
+SmokeMonster.Shadow = function()
+{
+	return {
+		color: new SmokeMonster.Color(),
+	    position: new SmokeMonster.Vector(2, 2),
+	    blur: 0,
+	  	spread: 0,
+	  	type: SmokeMonster.ShadowType.stDefault,
+	  	visible: false
+	} 
+}
+
+SmokeMonster.Border = function()
+{
+	return {
+		width: 0,
+  		style: "solid",
+  		color: new SmokeMonster.Color(),
+  		radius: new SmokeMonster.Rect()
+	}
+}
+
+
+SmokeMonster.Screen = function()
+{
+  var width = 0,
+  	  height = 0,
+
+  refresh = function()
+  {
+  	if (jQuery)
+  	{
+  		width = $(window).width();
+  		height = $(window).height();
+  	}
+  	else
+  	{
+  		if ( typeof( window.innerWidth ) == 'number' )
+	    {
+	      //Non-IE
+	      if (width != window.innerWidth) { width = window.innerWidth; }
+	      if (height != window.innerHeight) { height = window.innerHeight; }
+	    }
+	    else if ( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) )
+	    {
+	      //IE 6+ in 'standards compliant mode'
+	      if (width != document.documentElement.clientWidth) { width = document.documentElement.clientWidth; }
+	      if (height != document.documentElement.clientHeight) { height = document.documentElement.clientHeight; }
+	    }
+	    else if (document.body && ( document.body.clientWidth || document.body.clientHeight ) )
+	    {
+	      //IE 4 compatible
+	      if (width != document.body.clientWidth) { width = document.body.clientWidth; }
+	      if (height != document.body.clientHeight) { height = document.body.clientHeight; }
+	    }
+  	}
+  	
+  };
+  
+  return {
+  	width: width,
+  	height: height,
+  	refresh: refresh
+  }
+  
+}();
+
+
+if (window.addEventListener)       //< Also: Refresh values if windows has been resized
+	window.addEventListener('resize', function (event) { Screen.refresh(); } , false);
+else
+{
+	if (window.attachEvent)
+		window.attachEvent('onresize', function (event) { Screen.refresh(); } );
+}
+
+
+SmokeMonster.Cursor = new SmokeMonster.Vector();
+
+function updateCursor(e)
+{
+  if (IE)
+  {
+    SmokeMonster.Cursor.x = window.event.clientX + document.body.scrollLeft;
+    SmokeMonster.Cursor.y = window.event.clientY + document.body.scrollTop;
+  }
+  else
+  {
+    SmokeMonster.Cursor.x = e.pageX;
+    SmokeMonster.Cursor.y = e.pageY;
+  }
+}
+
+if (!IE) document.captureEvents(Event.MOUSEMOVE);
+
+if (document.addEventListener)       //< Also: Refresh values if windows has been resized
+	document.addEventListener('mousemove', updateCursor, false);
+else
+{
+	if (document.attachEvent)
+		document.attachEvent('onmousemove', updateCursor);
+}
+
+
+
+SmokeMonster.Texture = function()
+{
+  // Public
+  var loaded = false,
+      error = false,
+      width = 0,
+  	  height = 0,
+  	  src = "",
+  
+  img = new Image(),
+  
+  loadFromFile = function(aFilename)
+  {
+    src = aFilename;
+    img.src = aFilename;
+    
+    width = img.width;
+    height = img.height;
+  };
+  
+  img.onload = function()
+  {
+    loaded = true;
+    error = false;
+  };
+
+  img.onerror = function()
+  {
+    loaded = false;
+    error = true;
+  };
+  
+  return {
+  	loaded: loaded,
+  	error: error,
+  	width: width,
+  	height: height,
+  	src: src,
+  	
+  };
+};
+
+SmokeMonster.ObjectOffset = function()
+{
+	var transform = new SmokeMonster.Vector(50, 50);
+	
+	transform.type = SmokeMonster.UnitType.stPercent;
+	
+	return {
+		position: new SmokeMonster.Vector(),
+  		transform: transform 
+	};
+}
+
+SmokeMonster.Sprite = function(parentNode)
+{
+  // Private
+  var margin = new SmokeMonster.Vector(),
+      styleText = "",
+      transText = "",
+      anim = new Array();
+
+  // Public Core
+
+  var id = createNewUniqueID("sprite"),
+	  node = document.createElement("div"),
+  	  parent = parentNode;
+  
+  // Add moi to the DOM
+  node.id = id;
+  (typeof(parent) == "undefined") ? SmokeMonster.add('body', node) : SmokeMonster.add(parentNode, node);
+
+  // Public properties and methods
+  var
+  alpha = 255,
+  angle = 0.0,
+  backgroundColor = new SmokeMonster.Color(0, 0, 0, 0),
+  border = new SmokeMonster.Border(),
+  clipRect = new SmokeMonster.Rect(),
+  cursor = "default",
+  
+  offset = new SmokeMonster.ObjectOffset(),
+  position = new SmokeMonster.Vector(),
+  scale = new SmokeMonster.Vector(1.0, 1.0),
+  scaleClipRect = false,
+  skew = new SmokeMonster.Vector(0.0, 0.0),
+  shadow = new SmokeMonster.Shadow(),
+  texture = new SmokeMonster.Texture(),
+
+  sticky = false,
+
+  href = "",
+  
+  
+  extraParams = "", //< Will be inserted at the end after all other css properties have been applied
+  extraTransform = "", //< Will be inserted in transform: computedProperties extraTransform ; ...
+
+  width,
+  height,
+
+  visible = true,
+  
+  
+  className = "",
+
+  
+  loadFromFile = function(aFilename, aClipRect)
+  {
+    texture.loadFromFile(aFilename);
+
+    width = texture.width;
+    height = texture.height;
+
+    if (typeof aClipRect != "undefined") clipRect = aClipRect;
+  },
+  
+  loadFromTexture = function(aTexture, aClipRect)
+  {
+    texture = aTexture;
+
+    width = aTexture.width;
+    height = aTexture.height;
+
+    if (typeof aClipRect != "undefined") clipRect = aClipRect;
+  },
+
+  // Events
+  click = function(evtClick)
+  {
+	if (node.addEventListener)
+		node.addEventListener('click', evtClick, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('onclick', evtClick);
+	}
+  },
+  
+  dblclick = function(evtDblClick)
+  {
+	if (node.addEventListener)
+		node.addEventListener('dblclick', evtDblClick, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('ondblclick', evtDblClick);
+	}
+  },
+  
+  mousedown = function(evtMouseDown)
+  {
+	if (node.addEventListener)
+		node.addEventListener('mousedown', evtMouseDown, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('onmousedown', evtMouseDown);
+	}
+  },
+  
+  mousemove = function(evtMouseMove)
+  {
+	if (node.addEventListener)
+		node.addEventListener('mousemove', evtClick, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('onmousemove', evtClick);
+	}
+  },
+  
+  mouseout = function(evtMouseOut)
+  {
+	if (node.addEventListener)
+		node.addEventListener('mouseout', evtMouseOut, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('onmouseout', evtMouseOut);
+	}
+  },
+  
+  mouseover = function(evtMouseOver)
+  {
+	if (node.addEventListener)
+		node.addEventListener('mouseover', evtMouseOver, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('onmouseover', evtMouseOver);
+	}
+  },
+  
+  mouseup = function(evtMouseUp)
+  {
+	if (node.addEventListener)
+		node.addEventListener('mouseup', evtMouseUp, false);
+	else
+	{
+		if (node.attachEvent)
+			node.attachEvent('onmouseup', evtMouseUp);
+	}
+  },
+  
+  hover = function(evtMouseOver, evtMouseOut)
+  {
+	mouseover(evtMouseOver);
+	mouseout(evtMouseOut);
+  },
+  
+  unclick = function(evtClick)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('click', evtClick, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('onclick', evtClick);
+	}
+  },
+  
+  undblclick = function(evtDblClick)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('dblclick', evtDblClick, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('ondblclick', evtDblClick);
+	}
+  },
+  
+  unmousedown = function(evtMouseDown)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('mousedown', evtMouseDown, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('onmousedown', evtMouseDown);
+	}
+  },
+  
+  unmousemove = function(evtMouseMove)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('mousemove', evtClick, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('onmousemove', evtClick);
+	}
+  },
+  
+  unmouseout = function(evtMouseOut)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('mouseout', evtMouseOut, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('onmouseout', evtMouseOut);
+	}
+  },
+  
+  unmouseover = function(evtMouseOver)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('mouseover', evtMouseOver, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('onmouseover', evtMouseOver);
+	}
+  },
+  
+  unmouseup = function(evtMouseUp)
+  {
+	if (node.removeEventListener)
+		node.removeEventListener('mouseup', evtMouseUp, false);
+	else
+	{
+		if (node.detachEvent)
+			node.detachEvent('onmouseup', evtMouseUp);
+	}
+  },
+  
+  unhover = function(evtMouseOver, evtMouseOut)
+  {
+	unmouseover(evtMouseOver);
+	unmouseout(evtMouseOut);
+  },
+  
+  // Animator
+  addAnimation = function(property, duration, effect, delay)
+  {
+    if (typeof(effect) == "undefined") effect = "linear";
+    if (typeof(delay) == "undefined") delay = 0;
+
+    var tprop = "";
+
+    switch (property)
+    {
+      case "alpha": case "opacity": tprop = "opacity"; break;
+      case "position.x": case "left": tprop = "left"; break;
+      case "position.y": case "top": tprop = "top"; break;
+      case "position.z": tprop = "z-index"; break;
+      case "width": tprop = "width"; break;
+      case "height": tprop = "height"; break;
+      case "all": tprop = "all"; break;
+      default: tprop = property; break;
+    }
+
+	for (var i = 0; i < getAnimCount(); i++)
+	{
+	  if (anim[i] == "{0} {1}ms {2} {3}ms".format(tprop, duration, effect, delay))
+		return;
+	}
+	anim.push("{0} {1}ms {2} {3}ms".format(tprop, duration, effect, delay));
+  },
+  
+  removeAnimation = function(property, duration, effect, delay)
+  {
+	for (var i = 0; i < getAnimCount(); i++)
+	{
+	  if (anim[i] == "{0} {1}ms {2} {3}ms".format(tprop, duration, effect, delay))
+	  {
+		anim.splice(i, 1);
+		return;
+	  }
+	}
+  },
+
+  getAnimCount = function()
+  {
+	return anim.length;
+  },
+  
+  resetAnimation = function()
+  {
+  	anim.splice(0, getAnimCount());
+  },
+
+  getAbsolutePosition = function()
+  {
+  	if (parent == null)
+      return position;
+    else
+  	  return new SmokeMonster.Vector(position.x + parent.getAbsolutePosition().x, position.y + parent.getAbsolutePosition().y, position.z + parent.getAbsolutePosition().z);
+  },
+
+  remove = function()
+  {
+    if (typeof(parentNode) == "string")
+      SmokeMonster.remove(parentNode, node);
+    else
+    {
+      if (parentNode == "undefined")
+        SmokeMonster.remove('body', node);
+      else
+        SmokeMonster.remove(parentNode, node);
+    }
+  },
+
+  draw = function()
+  {
+    if (!texture.isLoaded()) return;
+	
+	  width = (clipRect.w != 0) ? clipRect.w : texture.width;
+	  height = (clipRect.h != 0) ? clipRect.h : texture.height;
+
+    // Reset style to reapply style
+    if (styleText != "") styleText = "";
+    if (transText != "") transText = "";
+
+
+    if (!visible) styleText += "display:none;";
+	
+  	if (href != "") 
+  	{
+  	  cursor = "pointer";
+  	  hyperlink = href;
+  	}
+  	
+  	if (cursor != "default") styleText += "cursor: " + cursor + ";";
+  	
+  	if (backgroundColor.a != 0)
+  	{
+  	  if (backgroundColor.a == 255)
+  	    styleText += "background: {0} url({1});".format(backgroundColor.toHex(), texture.src);
+  	  else
+	    {
+	      if (Modernizr.rgba)
+	        styleText += "background: {0} url({1});".format(backgroundColor.get(), texture.src);
+	      else
+	        styleText += "background: {0} url({1});".format(backgroundColor.toHex(), texture.src);
+	    }
+  	}
+  	else
+  	  styleText += "background: url({0});".format(texture.src);
+
+    styleText += "background-repeat:no-repeat;";
+
+    if ((Modernizr.opacity) && (alpha != 255))
+      styleText += "filter:alpha(opacity={0}); -moz-opacity:{1}; -khtml-opacity:{1}; opacity:{1}; ".format((alpha / 255) * 100, alpha / 255);
+  	  
+    if ((position.x != 0) || (position.y != 0) || (offset.position.x != 0) || (offset.position.y != 0))
+    {
+      if (sticky)
+      	styleText += "position:fixed;";
+      else
+      	styleText += "position:absolute;";
+
+      if (position.x != 0)
+      {
+        switch (position.type)
+        {
+          case "px":
+          {
+            if (offset.position.x != 0)
+            {
+              switch (offset.position.type)
+              {
+                case "px":
+              	  margin.x = offset.position.x; break;
+                case "%":
+                  margin.x = (offset.position.x / 100) * (width * scale.x); break;
+              }
+            }
+
+            break;
+          }
+          case "%":
+          {
+            if (offset.position.x != 0)
+            {
+              switch (offset.position.type)
+              {
+                case "px":
+              	  margin.x = (offset.position.x / _Screen.width) * 100; break;
+                case "%":
+                  margin.x = (((offset.position.x / 100) * width) / _Screen.width) * 100; break;
+              }
+            }
+
+            break;
+          }
+        }
+
+        var posx = (margin.x != 0) ? (position.x - margin.x) : position.x;
+        styleText += "left: {0}{1};".format(posx, position.type);
+      }
+      if (position.y != 0)
+      {
+        switch (position.type)
+        {
+          case "px":
+          {
+            if (offset.position.y != 0)
+            {
+              switch (offset.position.type)
+              {
+                case "px":
+              	  margin.y = offset.position.y; break;
+                case "%":
+                  margin.y = (offset.position.y / 100) * (height * scale.y); break;
+              }
+            }
+
+            break;
+          }
+          case "%":
+          {
+            if (offset.position.y != 0)
+            {
+              switch (offset.position.type)
+              {
+                case "px":
+              	  margin.y = (offset.position.y / _Screen.height) * 100; break;
+                case "%":
+                  margin.y = (((offset.position.y / 100) * height) / _Screen.height) * 100; break;
+              }
+            }
+
+            break;
+          }
+        }
+
+        var posy = (margin.y != 0) ? (position.y - margin.y) : position.y;
+        styleText += "top: {0}{1};".format(posy, position.type);
+      }
+    }
+
+    if (position.z != 0)
+      	styleText += "z-index:{0};".format(position.z);
+    if (!clipRect.isEmpty())
+    {
+    	if (scaleClipRect)
+        {
+            if ((clipRect.x != 0) || (clipRect.y != 0)) styleText += "background-position: {0}px {1}px;".format(-(clipRect.x * scale.x), -(clipRect.y * scale.y));
+        	styleText += "clip:rect({0}px {1}px {2}px {3}px); ".format(0, (clipRect.w + clipRect.x) * scale.x, (clipRect.h + clipRect.y) * scale.y, 0);
+        }
+        else
+        {
+            if ((clipRect.x != 0) || (clipRect.y != 0)) styleText += "background-position: {0}px {1}px;".format(-clipRect.x, -clipRect.y);
+    		styleText += "clip:rect({0}px {1}px {2}px {3}px); ".format(0, (clipRect.w + clipRect.x), (clipRect.h + clipRect.y), 0);
+        }
+    }
+	
+	if ((Modernizr.boxshadow) && (shadow.visible))
+      styleText += "-moz-box-shadow: {0} {1}{2} {3}{2} {4}{2} {5}{2} {6}; -webkit-box-shadow: {0} {1}{2} {3}{2} {4}{2} {5}{2} {6}; box-shadow: {0} {1}{2} {3}{2} {4}{2} {5}{2} {6};".format(shadow.type, shadow.position.x, shadow.position.type, shadow.position.y, shadow.blur, shadow.spread, shadow.color.toHex());
+
+	if (border.width != 0)
+	  styleText += "border:{0}px {1} {2};".format(border.width, border.style, border.color.toHex());
+	  	  
+	if ((Modernizr.borderradius) && (!border.radius.isEmpty()))
+	{
+	  if (border.radius.isSameValue())
+	    styleText += "border-radius: {0}{1}; -webkit-border-radius: {0}{1}; -moz-border-radius: {0}{1};".format(border.radius.x, "px");
+	  else
+	    styleText += "border-radius: {0}{1} {2}{1} {3}{1} {4}{1}; -webkit-border-radius: {0}{1} {2}{1} {3}{1} {4}{1}; -moz-border-radius: {0}{1} {2}{1} {3}{1} {4}{1};".format(border.radius.x, "px", border.radius.y, border.radius.w, border.radius.h);
+	} 
+
+
+    // Transform properties
+    // Those are being handled differently, they need to be in this form: transfrom: property1 property2 property3 etc.
+
+    if (Modernizr.csstransforms)
+    {
+      if ((angle / 360) != 0)
+      transText += "rotate({0}deg)".format(angle);
+	
+    	switch (offset.transform.type)
+    	{
+    	  case "%": styleText += "-moz-transform-origin: {0}{1} {2}{1}; -webkit-transform-origin: {0}{1} {2}{1}; -o-transform-origin: {0}{1} {2}{1}; -ms-transform-origin: {0}{1} {2}{1}; -transform-origin: {0}{1} {2}{1};".format((offset.transform.x / 100) * width, "px", (offset.transform.y / 100) * height); break;
+    	  default: styleText += "-moz-transform-origin: {0}{1} {2}{1}; -webkit-transform-origin: {0}{1} {2}{1}; -o-transform-origin: {0}{1} {2}{1}; -ms-transform-origin: {0}{1} {2}{1}; -transform-origin: {0}{1} {2}{1};".format(offset.transform.x, offset.transform.type, offset.transform.y); break;
+    	}
+  
+      if (skew.x != 0) transText += " skewX({0}deg)".format(skew.x);
+      if (skew.y != 0) transText += " skewY({0}deg)".format(skew.y);
+  
+      if ((scale.x != 0.0) && (scale.x != 1.0)) transText += " scaleX({0})".format(scale.x);
+      if ((scale.y != 0.0) && (scale.y != 1.0)) transText += " scaleY({0})".format(scale.x);
+  
+      if ((transText != "") || (extraTransform != ""))
+      	styleText += "-moz-transform: {0} {1}; -webkit-transform: {0} {1}; -o-transform: {0} {1}; -ms-transform: {0} {1}; transform: {0} {1};".format(transText, extraTransform);
+    }
+    
+    // Set width & height
+    styleText += "min-width: {0}px; min-height: {1}px; max-width: {0}px; max-height: {1}px; width: {0}px; height: {1}px;".format(width + border.width, height + border.width);
+      
+      // Add animation if any
+    if ((Modernizr.csstransitions) && (getAnimCount() > 0))
+      styleText += "transition: {0} -webkit-transition: {0} -moz-transition: {0} -o-transition: {0} -ms-transition: {0}".format(anim.join(",") + ";");
+
+    // Add class name if any
+    if (className != "") node.className = className;
+
+    // Add extra parameters without checking if they are valid, that's how we roll :D
+    if (extraParams != "") styleText += extraParams;
+
+	
+    // Apply style sheet to node
+    node.style.cssText = styleText;
+  };
+  
+  ///// Click-Event for hyperlinks
+  click(function (event)
+  {
+    if ((href == "") || (href == null)) return;
+
+	location.href = href;
+  });
+  ////
+  
+  return {
+  	  alpha: alpha,
+	  angle: angle,
+	  backgroundColor: backgroundColor,
+	  border: border,
+	  clipRect: clipRect,
+	  cursor: cursor,
+	  
+	  offset: offset,
+	  position: position,
+	  scale: scale,
+	  scaleClipRect: scaleClipRect,
+	  skew: skew,
+	  shadow: shadow,
+	  texture: texture,
+	  sticky: sticky,
+	  href: href,
+	  extraParams: extraParams,
+	  extraTransform: extraTransform,
+	  width: width,
+	  height: height,
+	  visible: visible,
+	  className: className,
+	  loadFromFile: loadFromFile,
+	  loadFromTexture: loadFromTexture,
+	  click: click,
+	  dblclick: dblclick,
+	  mousedown: mousedown,
+	  mousemove: mousemove,
+	  mouseout: mouseout,
+	  mouseover: mouseover,
+	  mouseup: mouseup,
+	  hover: hover,
+	  unclick: unclick,
+	  undblclick: undblclick,
+	  unmousedown: unmousedown,
+	  unmousemove: unmousemove,
+	  unmouseout: unmouseout,
+	  unmouseover: unmouseover,
+	  unmouseup: unmouseup,
+	  unhover: unhover,
+	  addAnimation: addAnimation,
+	  removeAnimation: removeAnimation,
+	  getAnimCount: getAnimCount,
+	  resetAnimation: resetAnimation,
+	  getAbsolutePosition: getAbsolutePosition,
+	  remove: remove,
+	  draw: draw
+  }
+};
